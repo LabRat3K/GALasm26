@@ -2311,24 +2311,16 @@ void WriteFuseFile(char *filename, int gal_type)
 
         if ((fp = fopen(filename, (char *)"w")))
         {
-            if (gal_type == GAL16V8)
-            {
+            if (gal_type == GAL16V8) {
                 pin = 19;
                 numofOLMCs = 8;
-            }
-            else
-            if (gal_type == GAL20V8)
-            {
+            } else if (gal_type == GAL20V8) {
                pin = 22;
                numofOLMCs = 8;
-            }
-            if (gal_type == GAL26CV12)
-            {
+            } else if (gal_type == GAL26CV12) {
                pin = 27;
                numofOLMCs = 12;
-            }
-            else
-            {                                  /* 22V10, 20RA10 */
+            } else {                                  /* 22V10, 20RA10 */
                pin = 23;
                numofOLMCs = 10;
             }
@@ -2398,10 +2390,14 @@ void WriteFuseFile(char *filename, int gal_type)
                     WriteRow(fp, row, num_of_col);
                 }
 
-                if (gal_type == GAL26CV12 && olmc == 11)
+                if (gal_type == GAL26CV12)
                 {                                        /* SP when 26CV12 */
-                    fprintf(fp, "\n\nSP");
-                    WriteRow(fp, row, num_of_col);
+                    if (olmc == 11) {
+                       fprintf(fp, "\n\nSP");
+                       WriteRow(fp, row, num_of_col);
+                    }else if (olmc == 6) {
+                       pin--; // Skip GND in the middle of the pin/olmc list
+                    }
                 }
 
                 pin--;
