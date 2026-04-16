@@ -186,6 +186,28 @@ unsigned FuseChecksum(int galtype)
             }
         }
 
+        if (galtype == GAL26CV12)
+        {
+            if (n >= XOR26CV12 && n < XOR26CV12 + 24)
+            {
+                if (!(n % 2))
+                    ptr = ptrXOR++;
+                else
+                    ptr = ptrS1++;
+            }
+            else
+            {
+                if (n == SIG26CV12)
+                    ptr = &Jedec.GALSig[0] - 1L;
+
+                if (n == SIG26CV12 + SIG_SIZE)
+                    break;
+                else
+                    ptr++;
+            }
+        }
+
+
 
         byte |= (*ptr << (n+8) % 8);
 
@@ -252,6 +274,12 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config *cfg)
                  RowSize    = ROW_SIZE_20RA10;
                  XORSize    = 10;
                  break;
+
+         case GAL26CV12:
+                 MaxFuseAdr = MAX_FUSE_ADR26CV12;
+                 RowSize    = ROW_SIZE_26CV12;
+                 XORSize    = 12;
+                 break;
     }
 
 
@@ -290,6 +318,12 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config *cfg)
             return(-1);
     }
 
+    if (galtype == GAL26CV12)
+    {
+        if (AddString(&buff, (UBYTE *)"Device:         GAL26CV12\n\n"))
+            return(-1);
+    }
+
 
     if (AddString(&buff, (UBYTE *)"*F0\n"))     /* default value of fuses */
         return(-1);
@@ -318,6 +352,10 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config *cfg)
 
     if (galtype == GAL22V10)
         if (AddString(&buff, (UBYTE *)"*QF5892\n"))
+            return(-1);
+
+    if (galtype == GAL26CV12)
+        if (AddString(&buff, (UBYTE *)"*QF6432\n"))
             return(-1);
 
 	/*** make fuse-matrix ***/
@@ -376,8 +414,8 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config *cfg)
             return(-1);
         bitnum++;
 
-        if (galtype == GAL22V10)
-        {                                           /*** S1 of 22V10 ***/
+        if ((galtype == GAL22V10) || (galtype == GAL26CV12))
+        {                                           /*** S1 of 22V10 or 26CV12 ***/
             if (AddByte(&buff, (UBYTE)(Jedec.GALS1[n] + '0')))
                 return(-1);
             bitnum++;

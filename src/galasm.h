@@ -20,8 +20,9 @@
 #define GAL20V8         2
 #define GAL22V10        3
 #define GAL20RA10       4
-#define UNKNOWN         5
-#define NOT_SPECIFIED   6
+#define GAL26CV12       5
+#define UNKNOWN         (GAL26CV12+1)6
+#define NOT_SPECIFIED   (UNKNOWN+1)
 
 #define YES             1
 #define NO              0
@@ -61,15 +62,24 @@
 #define XOR20RA10        3200           /* in the JEDEC file     */
 #define SIG20RA10        3210
 
+#define NUMOFFUSES26CV12 6432           /* GAL26CV12 */
+#define XOR26CV12       6344            /* in the JEDEC file     */
+#define SYN26CV12       6345
+#define SIG26CV12       6268
+
 
 #define LOGIC16_SIZE    2048            /* number of bits for XOR etc. */
 #define LOGIC20_SIZE    2560
 #define LOGIC22V10_SIZE 5808
 #define LOGIC20RA10_SIZE 3200
+#define LOGIC26CV12_SIZE 6344
+
 #define ROW_SIZE_16V8   64
 #define ROW_SIZE_20V8   64
 #define ROW_SIZE_22V10  132
 #define ROW_SIZE_20RA10 80
+#define ROW_SIZE_26CV12 122
+
 #define XOR_SIZE        8
 #define SIG_SIZE        64
 #define AC1_SIZE        8
@@ -86,6 +96,8 @@
 #define SIG_ADR22V10            44
 #define MAX_FUSE_ADR20RA10      39
 #define SIG_ADR20RA10           40
+#define MAX_FUSE_ADR26CV12      51
+#define SIG_ADR26CV12           52
 #define ACW_ADR                 60
 #define SECURITY_ADR            61
 #define ERASE_ADR               63
@@ -174,14 +186,15 @@ struct  Config
                                         /* the fuses in a kind of JEDEC    */
                                         /* format                          */
 
-struct  JedecStruct { BYTE GALLogic[5808];      /*max. size of fuse matrix */
-                      BYTE GALXOR  [10];        /* XOR bits                */
+// *increase sies for 26CV12 support
+struct  JedecStruct { BYTE GALLogic[6344];      /*max. size of fuse matrix */
+                      BYTE GALXOR  [12];        /* XOR bits                */
                       BYTE GALSig  [64];        /* signature               */
                       BYTE GALAC1  [8];         /* AC1 bits                */
                       BYTE GALPT   [64];        /* product term disable    */
                       BYTE GALSYN;              /* SYN bit                 */
                       BYTE GALAC0;              /* AC0 bit                 */
-                      BYTE GALS1   [10];        /* S1 bits for 22V10       */
+                      BYTE GALS1   [12];        /* S1 bits for 22V10/26CV12*/
                     };
                     
 

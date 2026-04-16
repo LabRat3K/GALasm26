@@ -30,12 +30,12 @@
 #define SUFFIX_APRST            5
 #define SUFFIX_ARST             6
 
-#define DUMMY_OLMC11            24
-#define DUMMY_OLMC12            25
+int DUMMY_OLMC11 =24; // Original Defaults
+int DUMMY_OLMC12 =25;
 
 
 /******************************** variables **********************************/
- 
+
 
 
 
@@ -48,12 +48,12 @@
 
 /* A possible translation (courtesy of Babelfish)
  * These arrays indicate, into which column the appropriate pin
- * becomes linked (and/or jerk-coupled). For inverting linking 
+ * becomes linked (and/or jerk-coupled). For inverting linking
  * is to be added 1, in order to receive the appropriate column -1 hei_t
  * : no linking on matrix available.
  */
 
-/* Possible interpretation (by me) 
+/* Possible interpretation (by me)
  * These arrays maps the pins to the fuse matrix. Each integer
  * represents the number of the linked column or -1 if that pin
  * dosn't link to any column . For inverted signals, the right column
@@ -61,39 +61,48 @@
  */
 
 /* GAL16V8 */
+#define NOTAVAIL (-3)
+#define GND      (-2)
+#define VCC      (-1)
+int     PinToFuse16Mode1[20]    = {  2,  0,  4,  8, 12, 16, 20, 24, 28, GND,
+                                    30, 26, 22, 18, -1, -1, 14, 10,  6, VCC };
 
-int     PinToFuse16Mode1[20]    = {  2,  0,  4,  8, 12, 16, 20, 24, 28, -1,
-                                    30, 26, 22, 18, -1, -1, 14, 10,  6, -1 };
+int     PinToFuse16Mode2[20]    = {  2,  0,  4,  8, 12, 16, 20, 24, 28, GND,
+                                    30, NOTAVAIL, 26, 22, 18, 14, 10,  6, -1, VCC };
 
-int     PinToFuse16Mode2[20]    = {  2,  0,  4,  8, 12, 16, 20, 24, 28, -1,
-                                    30, -1, 26, 22, 18, 14, 10,  6, -1, -1 };
-
-int     PinToFuse16Mode3[20]    = { -1,  0,  4,  8, 12, 16, 20, 24, 28, -1,
-                                    -1, 30, 26, 22, 18, 14, 10,  6,  2, -1 };
+int     PinToFuse16Mode3[20]    = { NOTAVAIL,  0,  4,  8, 12, 16, 20, 24, 28, GND,
+                                    NOTAVAIL, 30, 26, 22, 18, 14, 10,  6,  2, VCC };
 
 /* GAL20V8 */
 
-int     PinToFuse20Mode1[24]    = {  2, 0, 4, 8,12,16,20,24,28,32,36,-1,
-                                    38,34,30,26,22,-1,-1,18,14,10, 6,-1 };
+int     PinToFuse20Mode1[24]    = {  2, 0, 4, 8,12,16,20,24,28,32,36,GND,
+                                    38,34,30,26,22,-1,-1,18,14,10, 6,VCC };
 
-int     PinToFuse20Mode2[24]    = {  2, 0, 4, 8,12,16,20,24,28,32,36,-1,
-                                    38,34,-1,30,26,22,18,14,10,-1, 6,-1 };
+int     PinToFuse20Mode2[24]    = {  2, 0, 4, 8,12,16,20,24,28,32,36,GND,
+                                    38,34,-1,30,26,22,18,14,10,-1, 6,VCC };
 
-int     PinToFuse20Mode3[24]    = { -1, 0, 4, 8,12,16,20,24,28,32,36,-1,
-                                    -1,38,34,30,26,22,18,14,10, 6, 2,-1 };
+int     PinToFuse20Mode3[24]    = { NOTAVAIL, 0, 4, 8,12,16,20,24,28,32,36,GND,
+                                    NOTAVAIL,38,34,30,26,22,18,14,10, 6, 2,VCC };
 
 
 /* GAL22V10 */
 
-int     PinToFuse22V10[24]      = {  0, 4, 8,12,16,20,24,28,32,36,40,-1,
-                                    42,38,34,30,26,22,18,14,10, 6, 2,-1 };
+int     PinToFuse22V10[24]      = {  0, 4, 8,12,16,20,24,28,32,36,40,GND,
+                                    42,38,34,30,26,22,18,14,10, 6, 2,VCC };
 
 
 /* GAL20RA10 */
 
-int     PinToFuse20RA10[24]     = { -1, 0, 4, 8,12,16,20,24,28,32,36,-1,
-                                    -1,38,34,30,26,22,18,14,10, 6, 2,-1 };
+int     PinToFuse20RA10[24]     = { NOTAVAIL, 0, 4, 8,12,16,20,24,28,32,36,GND,
+                                    NOTAVAIL,38,34,30,26,22,18,14,10, 6, 2,VCC };
 
+/* GAL26CV12 */
+                                   // 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14
+int     PinToFuse26CV12[28]      = {  0, 4, 8,12,16,20,VCC,24,28,32,36,40,44,48,
+                                     50,46,42,38,34,30,GND,26,22,18,14,10, 6, 2 };
+                                   //15,16,17,18,19,20,21,22,23,24,25,26,27,28
+
+int     *activeFuseMap  = NULL;
 
 /* These arrays show which row is connected to */
 /* which OLMC */
@@ -101,13 +110,22 @@ int     PinToFuse20RA10[24]     = { -1, 0, 4, 8,12,16,20,24,28,32,36,-1,
 int     ToOLMC[8]         = { 56, 48, 40, 32, 24, 16, 8, 0 };
 
 int     ToOLMC22V10[12]   = { 122, 111, 98, 83, 66, 49, 34, 21, 10, 1, 0, 131 };
+                            // 11,  13, 15, 17, 17, 15, 13, 11, 9 , 1, -
+                            // 10,  12, 14, 16, 16, 14, 12, 10, 8,  0
 
 int     ToOLMC20RA10[10]  = { 72, 64, 56, 48, 40, 32, 24, 16, 8, 0 };
+
+int     ToOLMC26CV12[14]   = { 112, 103, 94, 85, 74, 61, 48, 37, 28, 19, 10, 1, 0, 121 };
+                             //  9,   9,  9, 11, 13, 13, 11,  9,  9,  9, 9 , 1, -
+                             //  8,   8,  8, 10, 12, 12, 10,  8,  8,  8, 8,  0
 
 /* this array shows the size of the */
 /* 22V10-OLMCs ( AR and SP = 1 )    */
 
 int     OLMCSize22V10[12] = { 9, 11, 13, 15, 17, 17, 15, 13, 11, 9, 1, 1 };
+                              // 11, 13, 15, 17, 17, 15, 13, 11, 9, 1, 1
+
+int     OLMCSize26CV12[14] = { 9, 9,  9,  9, 11, 13, 13, 11,  9, 9, 9, 9, 1, 1};
 
 /* The last two entries of the 22V10 arrays are for the   */
 /* AR and SP rows of the 22V10 GAL. This rows are not     */
@@ -119,8 +137,8 @@ int     OLMCSize22V10[12] = { 9, 11, 13, 15, 17, 17, 15, 13, 11, 9, 1, 1 };
 /* These two OLMCs are just dummy-OLMCs.                  */
 
 
-UBYTE   PinNames[24][10];
-UBYTE   PinDecNeg[24];
+UBYTE   PinNames[28][10];
+UBYTE   PinDecNeg[28];
 UBYTE   ModeErrorStr[] = "Mode  x:  Pin xx";
 UBYTE   *pinnames;
 int    	modus;
@@ -132,25 +150,60 @@ UBYTE   *actptr, *buffend;
 struct  JedecStruct     Jedec;
 
 struct  Pin             actPin;
-struct  GAL_OLMC        OLMC[12];
+struct  GAL_OLMC        OLMC[14];
 
 UBYTE   *fbuff;
 
+
+/**********************************************
+  * SetMode utilty to update modus and
+  * the activeFuseMap array
+  ***********************************************/
+void SetMode(int mode, int gtype) {
+   modus = mode;
+   switch (gtype) {
+      case GAL16V8:
+         switch (modus) {
+            case 0: break;
+            case MODE1: activeFuseMap = PinToFuse16Mode1; break;
+            case MODE2: activeFuseMap = PinToFuse16Mode2; break;
+            case MODE3: activeFuseMap = PinToFuse16Mode3; break;
+         }
+         break;
+      case GAL20V8:
+         switch (modus) {
+            case 0: break;
+            case MODE1: activeFuseMap = PinToFuse20Mode1; break;
+            case MODE2: activeFuseMap = PinToFuse20Mode2; break;
+            case MODE3: activeFuseMap = PinToFuse20Mode3; break;
+         }
+         break;
+      case GAL22V10:
+         activeFuseMap = PinToFuse22V10;
+         break;
+      case GAL20RA10:
+         activeFuseMap = PinToFuse20RA10;
+         break;
+      case GAL26CV12:
+         activeFuseMap = PinToFuse26CV12;
+         break;
+   }
+}
 
 
 /******************************************************************************
 ** int AssemblePldFile(char *file)
 *******************************************************************************
-** input:   file  The file to be assembled 
+** input:   file  The file to be assembled
 **
 ** output:  0:    successful
 **          else: error
 **
 ** remarks: This function does assemble a *.pld file.
 ******************************************************************************/
- 
+
 int AssemblePldFile(char *file, struct Config *cfg)
-{ 
+{
     UBYTE   chr;
     UBYTE   *bool_start, *oldptr;
     char    prevOp;
@@ -159,10 +212,10 @@ int AssemblePldFile(char *file, struct Config *cfg)
     int     max_chr, pass, pin_num, bool_linenum;
     int     actOLMC, row_offset, newline, oldline;
     int     suffix, start_row, max_row, num_of_olmcs;
-	int		gal_type;
-	int		num_of_pins;
-	int		olmc_1st_pin;
-	int  	num_of_col,fsize;
+    int     gal_type;
+    int     num_of_pins;
+    int     olmc_1st_pin;
+    int     num_of_col,fsize;
 
         {
             fsize = FileSize(file);
@@ -174,7 +227,6 @@ int AssemblePldFile(char *file, struct Config *cfg)
                     actptr  = fbuff;
                     buffend = fbuff+fsize;
                     linenum = 1;
-
 /* This code generates a warning about exceeding array bounds */
 #if	0
                     for (n = 0; n < sizeof(Jedec); n++)
@@ -189,7 +241,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                     memset(&Jedec, 0, sizeof(Jedec));
                     memset(Jedec.GALLogic, 1, sizeof(Jedec.GALLogic));
 
-                    for (n = 0; n < 12; n++)
+                    for (n = 0; n < 14; n++)
                     {                              /* clear OLMC structure */
                         OLMC[n].Active   = 0;
                         OLMC[n].PinType  = 0;
@@ -210,6 +262,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         olmc_1st_pin = 12;                 /* 1st OLMC pin    */
                         num_of_col   = MAX_FUSE_ADR16 + 1; /* number of col.  */
                         gal_type     = GAL16V8;
+                        activeFuseMap = PinToFuse16Mode1;
 
                         if ((*(actptr+7L) != ' ')  &&	/* Only ' ', newline and tab are valid 	*/
                             (*(actptr+7L) != 0x0A) &&   /* after the GAL's name					*/
@@ -227,6 +280,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         olmc_1st_pin = 15;                /* 1st OLMC pin */
                         num_of_col   = MAX_FUSE_ADR20 + 1;/* num of col   */
                         gal_type     = GAL20V8;
+                        activeFuseMap = PinToFuse20Mode1;
 
                         if ((*(actptr+7L) != ' ')  &&
                             (*(actptr+7L) != 0x0A) &&
@@ -244,6 +298,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         olmc_1st_pin = 14;
                         num_of_col   = MAX_FUSE_ADR20RA10 + 1;
                         gal_type     = GAL20RA10;
+                        activeFuseMap = PinToFuse20RA10;
 
                         if ((*(actptr+9L) != ' ')  &&
                             (*(actptr+9L) != 0x0A) &&
@@ -261,10 +316,31 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         olmc_1st_pin = 14;
                         num_of_col   = MAX_FUSE_ADR22V10 + 1;
                         gal_type     = GAL22V10;
+                        activeFuseMap = PinToFuse22V10;
 
                         if ((*(actptr+8L) != ' ')  &&
                             (*(actptr+8L) != 0x0A) &&
                             (*(actptr+8L) != 0x09))
+                        {
+                              AsmError(1, 0);
+                            return(-1);
+                        }
+                    }
+                    else
+                    if (strncmp((char *)actptr, "GAL26CV12", (size_t)9) == 0)
+                    {
+                        num_of_olmcs = 12;
+                        num_of_pins  = 28;
+                        olmc_1st_pin = 15;
+                        num_of_col   = MAX_FUSE_ADR26CV12 + 1;
+                        gal_type     = GAL26CV12;
+                        DUMMY_OLMC11 = 28;
+                        DUMMY_OLMC12 = 29;
+                        activeFuseMap = PinToFuse26CV12;
+
+                        if ((*(actptr+9L) != ' ')  &&
+                            (*(actptr+9L) != 0x0A) &&
+                            (*(actptr+9L) != 0x09))
                         {
                               AsmError(1, 0);
                             return(-1);
@@ -350,6 +426,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
 
                 if (!(isalpha(chr) || isdigit(chr) || IsNEG(chr)))
                 {
+                    printf("%d.%d: 0x%2.2x [%d]\n",n, num_of_pins, chr,chr);
                     AsmError(5, 0);             /* is character a legal */
                     return(-1);                 /* one?                 */
                 }
@@ -413,14 +490,14 @@ int AssemblePldFile(char *file, struct Config *cfg)
                                                   /* is GND at the GND-pin? */
                 if (!strcmp((char *)(pinnames + n*10), "GND"))
                 {
-                    if (n+1 != num_of_pins/2)
+                    if (activeFuseMap[n] != GND)
                     {
                         AsmError(6, 0);
                         return(-1);
                     }
                 }
 
-                if (n + 1 == num_of_pins/2)
+                if (activeFuseMap[n] == GND)
                 {
                     if (strcmp((char *)(pinnames + n*10), "GND"))
                     {
@@ -428,17 +505,17 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         return(-1);
                     }
                 }
-                                                /* is VCC at the VCC pin? */
+                                                   /* is VCC at the VCC pin? */
                 if (!strcmp((char *)(pinnames + n*10), "VCC"))
                 {
-                    if (n+1 != num_of_pins)
+                    if (activeFuseMap[n] != VCC)
                     {
                         AsmError(6, 0);
                         return(-1);
                     }
                 }
 
-                if (n + 1 == num_of_pins)
+                if (activeFuseMap[n] == VCC)
                 {
                     if (strcmp((char *)(pinnames + n*10), "VCC"))
                     {
@@ -449,7 +526,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                                         /* AR and SP are key words for 22V10 */
                                         /* they are not allowed in the pin */
                                         /* declaration */
-                if (gal_type == GAL22V10)
+                if ((gal_type == GAL22V10) || (gal_type == GAL26CV12))
                 {
                     if (!strcmp((char *)(pinnames+n*10), "AR"))
                     {
@@ -479,7 +556,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
    Boolean Equations evaluate:
    The Boolean Equations is twice examined.
    With the first run the OLMC pins are evaluated and the OLMC structure is filled.
-   With the help of this structure the correct mode (1, 2 or 3) will be 
+   With the help of this structure the correct mode (1, 2 or 3) will be
    calculated. With the second run the Fuse matrix is then provided.
 */
     if (GetNextChar())                  /* end of file? */
@@ -506,7 +583,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
 
         if (pass)                       /* 2. pass? => make ACW and get */
         {                               /* the mode for 16V8,20V8 GALs  */
-            modus = 0;
+            SetMode(0,gal_type); //modus = 0;
                                 /*** GAL16V8, GAL20V8 ***/
 
             if (gal_type == GAL16V8 || gal_type == GAL20V8)
@@ -518,7 +595,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                                                    /* is mode 3              */
                         if (!modus)
                         {
-                            modus = MODE3;
+                            SetMode(MODE3,gal_type); // modus = MODE3;
                             Jedec.GALSYN = 0;      /* set SYN and AC0 for mode 3 */
                             Jedec.GALAC0 = 1;
 
@@ -544,7 +621,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                                                        /* mode is mode 2      */
                             if (!modus)
                             {
-                                modus = MODE2;
+                                SetMode(MODE2,gal_type); // modus = MODE2;
                                 Jedec.GALSYN = 1;      /* set SYN, AC0 for mode 2 */
                                 Jedec.GALAC0 = 1;
 
@@ -578,7 +655,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                             {
                                 if (!modus)
                                 {
-                                    modus = MODE2;      /* mode 2 */
+                                    SetMode(MODE2,gal_type); //modus = MODE2;      /* mode 2 */
 
                                     Jedec.GALSYN = 1;   /* set SYN, AC0 bit */
                                     Jedec.GALAC0 = 1;
@@ -598,7 +675,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
 
                 if (!modus)             /* if there is still no mode */
                 {                       /* defined, use mode 1 */
-                    modus = MODE1;
+                    SetMode(MODE1,gal_type); //modus = MODE1;
 
                     Jedec.GALSYN = 1;       /* set SYN and AC0 bit */
                     Jedec.GALAC0 = 0;
@@ -633,7 +710,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         }
                     }
                 }
-        
+
                 /* make ACW; (SYN and AC0 are */
                 /* defined already) */
 
@@ -659,7 +736,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
             }
 
             /*** GAL22V10 ***/
-            if (gal_type == GAL22V10)
+            if ((gal_type == GAL22V10) || (gal_type == GAL26CV12))
             {
                 for (n = 0; n < 10; n++)
                 {
@@ -712,14 +789,12 @@ int AssemblePldFile(char *file, struct Config *cfg)
         actptr  = bool_start;
         linenum = bool_linenum;
         newline = linenum;
-
         goto label1;            /* Shit, don't blame me for the gotos.       */
                                 /* I know, goto is a very bad command in C   */
                                 /* and in the most other languages. But it   */
                                 /* is very hard to remove them in this case. */
 
 loop1:
-
         if (GetNextChar())                          /* end of file? */
         {
             AsmError(2, 0);
@@ -739,6 +814,12 @@ loop1:
                 return(-1);                     /* AR and SP */
             }
 
+            if (gal_type == GAL26CV12 &&
+                (actPin.p_Pin == 28 || actPin.p_Pin == 29))
+            {
+                AsmError(39, 0);                /* no suffix allowed at */
+                return(-1);                     /* AR and SP */
+            }
 
             n = 0;
             while (isalpha(*actptr))            /* copy suffix string into */
@@ -804,6 +885,9 @@ loop1:
         if (gal_type == GAL20V8)
             actOLMC -= 15;
         else
+        if (gal_type == GAL26CV12)
+            actOLMC -= 15;
+        else
             actOLMC -= 14;
 
 
@@ -819,7 +903,9 @@ loop1:
                 ((gal_type == GAL22V10) &&
                  (actPin.p_Pin >= 14) && (actPin.p_Pin <= DUMMY_OLMC12)) ||
                 ((gal_type == GAL20RA10) &&
-                 (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23)))
+                 (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23)) ||
+                ((gal_type == GAL26CV12) &&
+                 (actPin.p_Pin >= 15) && (actPin.p_Pin <= DUMMY_OLMC12)))
             {
 
                 switch (gal_type)           /* get OLMC number */
@@ -835,6 +921,9 @@ loop1:
                     case GAL22V10:
                     case GAL20RA10:
                         n = actPin.p_Pin - 14;
+                        break;
+                    case GAL26CV12:
+                        n = actPin.p_Pin - 15;
                         break;
                 }
 
@@ -867,7 +956,7 @@ loop1:
                         }
                         else
                         {
-                            if (gal_type == GAL22V10 && (n == 10 || n == 11))
+                            if ((gal_type == GAL22V10 || gal_type == GAL26CV12) && (n == 10 || n == 11))
                             {
                                 AsmError(40, 0);  /* AR or SP is defined */
                                 return(-1);       /* twice               */
@@ -954,7 +1043,7 @@ loop1:
                     }
 
                     break;
-        
+
 
 
                 case SUFFIX_ARST:
@@ -1047,6 +1136,11 @@ loop1:
                 start_row = ToOLMC20RA10[actOLMC];
                 max_row   = 8;
                 break;
+
+            case GAL26CV12:
+                start_row = ToOLMC26CV12[actOLMC];
+                max_row   = OLMCSize26CV12[actOLMC];
+                break;
         }
 
         if (*actptr != '=')                     /* '=' ?          */
@@ -1067,7 +1161,7 @@ loop2:
 
         IsPinName(pinnames, num_of_pins);
 
-        if (gal_type == GAL22V10 && !actPin.p_Pin)
+        if ((gal_type == GAL22V10 || gal_type == GAL26CV12) && !actPin.p_Pin)
         {                               /* AR and SP is not allowed */
             Is_AR_SP(oldptr);           /* in terms of an equation  */
 
@@ -1114,6 +1208,8 @@ loop2:
                  (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
                 ((gal_type == GAL22V10) &&
                  (actPin.p_Pin >= 14) && (actPin.p_Pin <= DUMMY_OLMC12)) ||
+                ((gal_type == GAL26CV12) &&
+                 (actPin.p_Pin >= 15) && (actPin.p_Pin <= DUMMY_OLMC12)) ||
                 ((gal_type == GAL20RA10) &&
                  (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23)) )
             {
@@ -1126,6 +1222,7 @@ loop2:
                         break;
 
                     case GAL20V8:
+                    case GAL26CV12:
                         n = actPin.p_Pin - 15;
                         break;
 
@@ -1169,6 +1266,21 @@ loop2:
                     else
                     {
                         if (actOLMC == 10 || actOLMC == 11)
+                            row_offset = 0;     /* AR, SP?, then no offset */
+                        else
+                            if (!row_offset)     /* output starts at the     */
+                                row_offset = 1;  /* second row => offset = 1 */
+                    }
+
+                    break;
+
+                case GAL26CV12:
+
+                    if (suffix == SUFFIX_E)    /* enable is the first row */
+                        row_offset = 0;        /* of the OLMC             */
+                    else
+                    {
+                        if (actOLMC == 12 || actOLMC == 13)
                             row_offset = 0;     /* AR, SP?, then no offset */
                         else
                             if (!row_offset)     /* output starts at the     */
@@ -1258,17 +1370,16 @@ loop2:
             }
 
             /* if GND, set row equal 0 */
-            if (pin_num == num_of_pins || pin_num == num_of_pins/2)
+            if (activeFuseMap[pin_num-1] == VCC || activeFuseMap[pin_num-1] == GND)
             {
                 if (actPin.p_Neg)
                 {                         /* /VCC and /GND are not allowed */
                     AsmError(25, 0);
                     return(-1);
                 }
-
                 if (!prevOp && !IsAND(*actptr) && !IsOR(*actptr))
                 {
-                    if (pin_num == num_of_pins/2)
+                    if (activeFuseMap[pin_num-1] == GND)
                     {
                         m = (start_row + row_offset) * num_of_col;
                                                       /* set row equal 0 */
@@ -1287,7 +1398,8 @@ loop2:
 
                 if (suffix == SUFFIX_E || suffix == SUFFIX_CLK ||
                     suffix == SUFFIX_ARST || suffix == SUFFIX_APRST ||
-                    (gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11)))
+                    (gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11)) ||
+                    (gal_type == GAL26CV12 && (actOLMC == 12 || actOLMC == 13)))
                 {
 
                     if (IsOR(prevOp))
@@ -1353,7 +1465,7 @@ label1:
 
             IsPinName(pinnames, num_of_pins);
 
-            if (gal_type == GAL22V10 && !actPin.p_Pin)
+            if ((gal_type == GAL22V10 || gal_type == GAL26CV12)  && !actPin.p_Pin)
             {                                       /* no pin name? then  */
                 Is_AR_SP(oldptr);                   /* check whether name */
                                                     /* is AR or SP        */
@@ -1363,7 +1475,7 @@ label1:
                     return(-1);
                 }
             }
-              
+
             if (!actPin.p_Pin)
             {                                       /* pin name?      */
                 AsmError(11, 0);                    /* no, then error */
@@ -1384,7 +1496,6 @@ label1:
         }
 
     }
-
 
                         /* set fuse matrix of unused OLMCs and of OLMCs */
                         /* which are programmed as input equal 0        */
@@ -1412,6 +1523,11 @@ label1:
                     l = ToOLMC20RA10[n];
                     i = 8;
                     break;
+
+                case GAL26CV12:
+                    l = ToOLMC26CV12[n];
+                    i = OLMCSize26CV12[n];
+                    break;
             }
 
             l = l * num_of_col;
@@ -1434,6 +1550,15 @@ label1:
             for (n = 5764; n < 5764 + num_of_col; Jedec.GALLogic[n++] = 0);
     }
 
+    if (gal_type == GAL26CV12)
+    {                                   /* if AR or SP is not defined,   */
+                                        /* set corresponding row equal 0 */
+        if (!OLMC[12].PinType)                  /* set row of AR equal 0 */
+            for (n = 0; n < num_of_col; Jedec.GALLogic[n++] = 0);
+
+        if (!OLMC[13].PinType)                         /* set row of SP equal 0 */
+            for (n = 6292; n < 6292 + num_of_col; Jedec.GALLogic[n++] = 0);
+    }
 
     if (gal_type == GAL20RA10)
     {                                           /* set unused CLK, ARST */
@@ -1565,7 +1690,7 @@ label1:
 **
 ** remarks: sets an AND (=0) in the fuse matrix
 ******************************************************************************/
- 
+
 void SetAND(int row, int pinnum, int negation, int gal_type)
 {
 	int column = 0;
@@ -1605,13 +1730,26 @@ void SetAND(int row, int pinnum, int negation, int gal_type)
                 negation = negation ? 0 : 1;
             }
 
-			numofcol = MAX_FUSE_ADR22V10 + 1;
+	    numofcol = MAX_FUSE_ADR22V10 + 1;
+            break;
+
+        case GAL26CV12:
+            column  =  PinToFuse26CV12[pinnum - 1];
+
+                                    /* is it a registered OLMC pin that is active high? */
+                                    /* Yes, then correct the negation                   */
+            if ((pinnum >= 15 && pinnum <= 27) && !Jedec.GALS1[27 - pinnum] && Jedec.GALXOR[27 - pinnum])
+            {
+                negation = negation ? 0 : 1;
+            }
+
+	    numofcol = MAX_FUSE_ADR26CV12 + 1;
             break;
 
         case GAL20RA10:
             column  =  PinToFuse20RA10[pinnum - 1];
-			numofcol = MAX_FUSE_ADR20RA10	+ 1;
-	        break;
+	    numofcol = MAX_FUSE_ADR20RA10	+ 1;
+	    break;
     }
 
     Jedec.GALLogic[row*numofcol + column + negation] = 0;
@@ -1636,7 +1774,7 @@ void SetAND(int row, int pinnum, int negation, int gal_type)
 **
 ** remarks: This function tests whether actptr points to a pinname or not
 ******************************************************************************/
- 
+
 void IsPinName(UBYTE *pinnames, int numofpins)
 {
     int     i, k, n;
@@ -1789,7 +1927,7 @@ int GetNextChar(void)
 
 
 
- 
+
 /******************************************************************************
 ** GetNextLine()
 *******************************************************************************
@@ -1913,7 +2051,7 @@ int GetPinNum(int gal_type)
 ** WriteChipFile(char *filename, int gal_type)
 *******************************************************************************
 ** input:   gal type
-**			filename 
+**			filename
 **
 ** output:  none
 **
@@ -1942,6 +2080,9 @@ void WriteChipFile(char *filename, int gal_type)
 
             if (gal_type == GAL22V10)
                 fprintf(fp, " GAL22V10\n\n");
+
+            if (gal_type == GAL26CV12)
+                fprintf(fp, " GAL26CV12\n\n");
 
             if (gal_type == GAL20RA10)
                 fprintf(fp, "GAL20RA10\n\n");
@@ -2017,13 +2158,13 @@ void WritePinFile(char *filename, int gal_type)
 
                 flag = 0;
 
-                if (n == num_of_pins/2)
+               if (activeFuseMap[n-1] == GND)
                 {
                     fprintf(fp,"| GND\n");
                     flag = 1;
                 }
 
-                if (n == num_of_pins)
+                if (activeFuseMap[n-1] == VCC)
                 {
                     fprintf(fp,"| VCC\n\n");
                     flag = 1;
@@ -2055,7 +2196,7 @@ void WritePinFile(char *filename, int gal_type)
                     }
                 }
 
-                if (gal_type == GAL22V10 && n == 1)
+                if ((gal_type == GAL22V10 || gal_type == GAL26CV12) && n == 1)
                 {
                     fprintf(fp, "| Clock/Input\n");
                     flag = 1;
@@ -2066,7 +2207,8 @@ void WritePinFile(char *filename, int gal_type)
                 if ((gal_type == GAL16V8   && n >= 12 && n <= 19) ||
                     (gal_type == GAL20V8   && n >= 15 && n <= 22) ||
                     (gal_type == GAL20RA10 && n >= 14 && n <= 23) ||
-                    (gal_type == GAL22V10  && n >= 14 && n <= 23))
+                    (gal_type == GAL22V10  && n >= 14 && n <= 23) ||
+                    (gal_type == GAL26CV12  && n >= 15 && n <= 27))
                 {
 
 
@@ -2118,7 +2260,7 @@ void WritePinFile(char *filename, int gal_type)
 ** remarks: writes a row of an OLMC to the file characterized by the file
 **          handle fp
 ******************************************************************************/
- 
+
 void WriteRow(FILE *fp, int row, int num_of_col)
 {
     int col;
@@ -2157,10 +2299,11 @@ void WriteFuseFile(char *filename, int gal_type)
 
 	switch(gal_type)
 	{
-		case GAL16V8: 	num_of_col = MAX_FUSE_ADR16	+ 1; break;
+		case GAL16V8: 	num_of_col = MAX_FUSE_ADR16 + 1; break;
 		case GAL20V8: 	num_of_col = MAX_FUSE_ADR20 + 1; break;
 		case GAL20RA10: num_of_col = MAX_FUSE_ADR20RA10	+ 1; break;
 		case GAL22V10:  num_of_col = MAX_FUSE_ADR22V10 + 1; break;
+		case GAL26CV12: num_of_col = MAX_FUSE_ADR26CV12 + 1; break;
 	}
 
         if ((fp = fopen(filename, (char *)"w")))
@@ -2171,16 +2314,21 @@ void WriteFuseFile(char *filename, int gal_type)
                 numofOLMCs = 8;
             }
             else
-                if (gal_type == GAL20V8)
-                {
-                    pin = 22;
-                    numofOLMCs = 8;
-                }
-                else
-                {                                  /* 22V10, 20RA10 */
-                    pin = 23;
-                    numofOLMCs = 10;
-                }
+            if (gal_type == GAL20V8)
+            {
+               pin = 22;
+               numofOLMCs = 8;
+            }
+            if (gal_type == GAL26CV12)
+            {
+               pin = 27;
+               numofOLMCs = 12;
+            }
+            else
+            {                                  /* 22V10, 20RA10 */
+               pin = 23;
+               numofOLMCs = 10;
+            }
 
 
 
@@ -2189,7 +2337,7 @@ void WriteFuseFile(char *filename, int gal_type)
             for (olmc = 0; olmc < numofOLMCs; olmc++)
             {
 
-                if (gal_type == GAL22V10 && olmc == 0)
+                if ((gal_type == GAL22V10 || gal_type == GAL26CV12) && olmc == 0)
                 {                               /* AR when 22V10 */
                     fprintf(fp, "\n\nAR");
                     WriteRow(fp, row, num_of_col);
@@ -2198,6 +2346,9 @@ void WriteFuseFile(char *filename, int gal_type)
 
                 if (gal_type == GAL22V10)             /* get number of rows */
                     numofrows = OLMCSize22V10[olmc];  /* of an OLMC         */
+                else
+                if (gal_type == GAL26CV12)
+                    numofrows = OLMCSize26CV12[olmc];  /* of an OLMC         */
                 else
                     numofrows = 8;
 
@@ -2214,17 +2365,21 @@ void WriteFuseFile(char *filename, int gal_type)
                     fprintf(fp, "XOR = %1d   AC1 = %1d", Jedec.GALXOR[19-pin],
                             Jedec.GALAC1[19 - pin]);
                 else
-                    if (gal_type == GAL20V8)
-                        fprintf(fp, "XOR = %1d   AC1 = %1d",
-                                Jedec.GALXOR[22 - pin], Jedec.GALAC1[22 - pin]);
-                    else
-                        if (gal_type == GAL22V10)
-                            fprintf(fp, "S0 = %1d   S1 = %1d",
-                                    Jedec.GALXOR[23 - pin], Jedec.GALS1[23 - pin]);
-                        else
-                            if (gal_type == GAL20RA10)
-                                fprintf(fp, "S0 = %1d",
-                                        Jedec.GALXOR[23 - pin]);
+                if (gal_type == GAL20V8)
+                   fprintf(fp, "XOR = %1d   AC1 = %1d",
+                      Jedec.GALXOR[22 - pin], Jedec.GALAC1[22 - pin]);
+                else
+                if (gal_type == GAL22V10)
+                   fprintf(fp, "S0 = %1d   S1 = %1d",
+                      Jedec.GALXOR[23 - pin], Jedec.GALS1[23 - pin]);
+                else
+                if (gal_type == GAL26CV12)
+                   fprintf(fp, "S0 = %1d   S1 = %1d",
+                      Jedec.GALXOR[27 - pin], Jedec.GALS1[27 - pin]);
+                else
+                if (gal_type == GAL20RA10)
+                   fprintf(fp, "S0 = %1d",
+                      Jedec.GALXOR[23 - pin]);
 
 
 
@@ -2234,9 +2389,14 @@ void WriteFuseFile(char *filename, int gal_type)
                     row++;
                 }
 
-
                 if (gal_type == GAL22V10 && olmc == 9)
                 {                                        /* SP when 22V10 */
+                    fprintf(fp, "\n\nSP");
+                    WriteRow(fp, row, num_of_col);
+                }
+
+                if (gal_type == GAL26CV12 && olmc == 11)
+                {                                        /* SP when 26CV12 */
                     fprintf(fp, "\n\nSP");
                     WriteRow(fp, row, num_of_col);
                 }
@@ -2295,7 +2455,7 @@ void WriteSpaces(FILE *fp, int numof)
 ** remarks: print error messages of the GAL-assembler and free
 **          the memory allocated by the file buffer
 ******************************************************************************/
- 
+
 void AsmError(int errornum, int pinnum)
 {
     free(fbuff);
@@ -2303,17 +2463,17 @@ void AsmError(int errornum, int pinnum)
     if (!pinnum)
         printf("Error in line %d: ", linenum);
     else
-		printf("Error, pin %d: ", pinnum);
+        printf("Error, pin %d: ", pinnum);
 
-	printf("%s\n", AsmErrorArray[errornum]);
-} 
- 
+    printf("%s\n", AsmErrorArray[errornum]);
+}
+
 /******************************************************************************
-** main 
+** main
 *******************************************************************************
-** 
+**
 ** options:
-** 
+**
 ** -s Enable security fuse
 ** -c Disable .chp file output
 ** -f Disable .fus file output
@@ -2323,7 +2483,7 @@ void AsmError(int errornum, int pinnum)
 ** -v Verbose output
 **
 **
-** 
+**
 ******************************************************************************/
 
 
@@ -2349,9 +2509,9 @@ int main(int argc, char *argv[])
 			"Original sources Copyright (c) 1991-96 Christian Habermann\n\n");
 
 
-  	while(argc > 1 && (p[0] == '-' || (isalpha(p[1]) && (argc != 2)))) 
+  	while(argc > 1 && (p[0] == '-' || (isalpha(p[1]) && (argc != 2))))
 	{
-    	switch(p[1]) 
+    	switch(p[1])
 		{
       		case 's':
 			case 'S':
@@ -2400,7 +2560,7 @@ int main(int argc, char *argv[])
 						"-v Verbose output\n");
 				return(0);
 
-      		case '-': 
+      		case '-':
       		case '\0':
 			argc--;
 			argv++;
@@ -2425,7 +2585,7 @@ int main(int argc, char *argv[])
 
 	opt_done:
 
-  	if(argc != 2) 
+  	if(argc != 2)
 	{
 		usage:
 			printf("Usage:\nGALasm [-scfpawv] <filename>\n");

@@ -297,6 +297,7 @@ char *GetGALName(int galtype)
 		case GAL20V8:	return("20V8");
 		case GAL22V10:	return("22V10");
 		case GAL20RA10:	return("20RA10");
+		case GAL26CV12:	return("26CV12");
 		
 		default:
 				return "UNKNOWN";
