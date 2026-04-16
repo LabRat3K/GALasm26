@@ -879,16 +879,20 @@ loop1:
 
         actOLMC = (int)actPin.p_Pin;                /* save offset of OLMC */
 
-        if (gal_type == GAL16V8)
-            actOLMC -= 12;
-        else
-        if (gal_type == GAL20V8)
-            actOLMC -= 15;
-        else
-        if (gal_type == GAL26CV12)
-            actOLMC -= 15;
-        else
-            actOLMC -= 14;
+        // conver the pin number to the OLMC index
+        if (gal_type == GAL16V8){
+           actOLMC -= 12;
+        } else if (gal_type == GAL20V8){
+           actOLMC -= 15;
+        } else if (gal_type == GAL26CV12) { /* Complex mapping  due to GND in the middle*/
+           if (actOLMC > 20){
+              actOLMC -= 16;
+           } else {
+              actOLMC -= 15;
+           }
+        } else {
+           actOLMC -= 14;
+        }
 
 
         row_offset = 0;                     /* offset for OR at OLMC*/
@@ -1395,7 +1399,6 @@ loop2:
             }
             else
             {
-
                 if (suffix == SUFFIX_E || suffix == SUFFIX_CLK ||
                     suffix == SUFFIX_ARST || suffix == SUFFIX_APRST ||
                     (gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11)) ||
@@ -2461,9 +2464,9 @@ void AsmError(int errornum, int pinnum)
     free(fbuff);
 
     if (!pinnum)
-        printf("Error in line %d: ", linenum);
+        printf("Error (%d) in line %d: ", errornum,linenum);
     else
-        printf("Error, pin %d: ", pinnum);
+        printf("Error (%d), pin %d: ", errornum, pinnum);
 
     printf("%s\n", AsmErrorArray[errornum]);
 }
