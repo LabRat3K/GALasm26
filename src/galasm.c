@@ -736,7 +736,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
             }
 
             /*** GAL22V10 ***/
-            if ((gal_type == GAL22V10) || (gal_type == GAL26CV12))
+            if (gal_type == GAL22V10)
             {
                 for (n = 0; n < 10; n++)
                 {
@@ -753,6 +753,28 @@ int AssemblePldFile(char *file, struct Config *cfg)
                     /* get AC1 bits (S1) */
                     if (OLMC[n].PinType == INPUT || OLMC[n].PinType == TRIOUT)
                         Jedec.GALS1[9 - n] = 1;
+                }
+
+            }
+
+            /*** GAL26CV12 ***/
+            if (gal_type == GAL26CV12)
+            {
+                for (n = 0; n < 12; n++)
+                {
+                    if (OLMC[n].PinType == COM_TRI_OUT)  /* output can be */
+                        OLMC[n].PinType = TRIOUT;        /* tristate or   */
+                                                         /* register      */
+
+                    if (((OLMC[n].PinType == COMOUT) ||
+                        (OLMC[n].PinType == TRIOUT) ||
+                        (OLMC[n].PinType == REGOUT)) &&
+                        (OLMC[n].Active  == ACTIVE_HIGH))
+                        Jedec.GALXOR[11 - n] = 1;
+
+                    /* get AC1 bits (S1) */
+                    if (OLMC[n].PinType == INPUT || OLMC[n].PinType == TRIOUT)
+                        Jedec.GALS1[11 - n] = 1;
                 }
 
             }
@@ -927,7 +949,11 @@ loop1:
                         n = actPin.p_Pin - 14;
                         break;
                     case GAL26CV12:
-                        n = actPin.p_Pin - 15;
+                // LabRat - NOT a linear map
+                        if (actPin.p_Pin < 21)
+                           n = actPin.p_Pin - 15;
+                        else
+                           n = actPin.p_Pin - 16;
                         break;
                 }
 
@@ -960,7 +986,8 @@ loop1:
                         }
                         else
                         {
-                            if ((gal_type == GAL22V10 || gal_type == GAL26CV12) && (n == 10 || n == 11))
+                            if  ( (gal_type == GAL22V10  && (n == 10 || n == 11))
+                               || (gal_type == GAL26CV12 && (n == 12 || n == 13)))
                             {
                                 AsmError(40, 0);  /* AR or SP is defined */
                                 return(-1);       /* twice               */
@@ -2045,6 +2072,7 @@ int IsNEG(char chr)
 int GetPinNum(int gal_type)
 {
 	if(gal_type == GAL16V8) return(20);
+	if(gal_type == GAL26CV12) return(28);
 
 	return(24);
 }
@@ -2211,17 +2239,24 @@ void WritePinFile(char *filename, int gal_type)
                     (gal_type == GAL20V8   && n >= 15 && n <= 22) ||
                     (gal_type == GAL20RA10 && n >= 14 && n <= 23) ||
                     (gal_type == GAL22V10  && n >= 14 && n <= 23) ||
-                    (gal_type == GAL26CV12  && n >= 15 && n <= 27))
+                    (gal_type == GAL26CV12  && (activeFuseMap[n-1] >= 0) && n >= 15 && n <= 27))
                 {
 
 
                     if (gal_type == GAL16V8)
                         k = n - 12;
+                    else if (gal_type == GAL20V8)
+                        k = n - 15;
+                    else if (gal_type == GAL26CV12){
+                    // LabRat - more remapping
+                        if (n < 21) {
+                           k = n - 15;
+                        } else {
+                           k = n - 16;
+                        }
+                    }
                     else
-                        if (gal_type == GAL20V8)
-                            k = n - 15;
-                        else
-                            k = n - 14;
+                        k = n - 14;
 
                     if (OLMC[k].PinType != INPUT)
                         if (OLMC[k].PinType)
@@ -2395,7 +2430,7 @@ void WriteFuseFile(char *filename, int gal_type)
                     if (olmc == 11) {
                        fprintf(fp, "\n\nSP");
                        WriteRow(fp, row, num_of_col);
-                    }else if (olmc == 6) {
+                    }else if (olmc == 5) {
                        pin--; // Skip GND in the middle of the pin/olmc list
                     }
                 }
