@@ -2197,7 +2197,7 @@ void WritePinFile(char *filename, int gal_type)
 
                 if (activeFuseMap[n-1] == VCC)
                 {
-                    fprintf(fp,"| VCC\n\n");
+                    fprintf(fp,"| VCC\n");
                     flag = 1;
                 }
 
@@ -2273,6 +2273,7 @@ void WritePinFile(char *filename, int gal_type)
                 }
             }
 
+            fprintf(fp,"\n");
             if (fclose(fp) == EOF)
             {
                 ErrorReq(8);                           /* can't close file */
