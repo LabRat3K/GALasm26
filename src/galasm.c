@@ -341,9 +341,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         DUMMY_OLMC12 = 29;
                         activeFuseMap = PinToFuse26CV12;
 
-                        if ((*(actptr+9L) != ' ')  &&
-                            (*(actptr+9L) != 0x0A) &&
-                            (*(actptr+9L) != 0x09))
+                        if (!IsTypeEnd(actptr + 9))
                         {
                               AsmError(1, 0);
                             return(-1);
