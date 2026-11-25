@@ -15,6 +15,11 @@
 static size_t WriteOutputWithCRLFLineEndings(void *buf, size_t size, size_t nmemb, FILE *out);
 static size_t WriteOutputWithNativeLineEndings(void *buf, size_t size, size_t nmemb, FILE *out);
 
+struct FuseSum { unsigned checksum;     /* sum of the complete bytes   */
+                 unsigned byte;         /* byte being packed           */
+                 int      numfuses;     /* number of fuses so far      */
+               };
+
 /******************************************************************************
 ** FileChecksum()
 *******************************************************************************
@@ -73,6 +78,40 @@ int FileChecksum(char *filename, unsigned *pchecksum)
 
 
 /******************************************************************************
+** SumFuses()
+*******************************************************************************
+** input:   *sum     running fuse checksum
+**          *fuses   the next fuses of the JEDEC structure, in JEDEC order
+**          count    number of fuses
+**
+** output:  none
+**
+** remarks: Fuses are packed into bytes, the first fuse in the least
+**          significant bit, and every complete byte is added to the
+**          checksum.  The caller adds the last, incomplete byte.
+******************************************************************************/
+
+static void SumFuses(struct FuseSum *sum, BYTE *fuses, int count)
+{
+    int n;
+
+    for (n = 0; n < count; n++)
+    {
+        sum->byte |= fuses[n] << (sum->numfuses % 8);
+
+        if (sum->numfuses % 8 == 7)
+        {
+            sum->checksum = (sum->checksum + sum->byte) % 0x10000;
+            sum->byte = 0;
+        }
+
+        sum->numfuses++;
+    }
+}
+
+
+
+/******************************************************************************
 ** FuseChecksum()
 *******************************************************************************
 ** input:   galtype     type of GAL
@@ -85,144 +124,55 @@ int FileChecksum(char *filename, unsigned *pchecksum)
 
 unsigned FuseChecksum(int galtype)
 {
+    struct FuseSum sum = { 0, 0, 0 };
     int      n;
-    unsigned checksum;
-    UBYTE    byte;
-    BYTE     *ptr, *ptrXOR, *ptrS1;
 
-
-
-    ptr    = &Jedec.GALLogic[0] - 1L;
-    ptrXOR = &Jedec.GALXOR[0];
-    ptrS1  = &Jedec.GALS1[0];
-
-    n        = 0;
-    checksum = 0;
-    byte     = 0;
-
-    for (;;)
+    switch (galtype)
     {
+        case GAL16V8:
+        case GAL20V8:
+            SumFuses(&sum, Jedec.GALLogic, galtype == GAL16V8 ? LOGIC16_SIZE
+                                                              : LOGIC20_SIZE);
+            SumFuses(&sum, Jedec.GALXOR, XOR_SIZE);
+            SumFuses(&sum, Jedec.GALSig, SIG_SIZE);
+            SumFuses(&sum, Jedec.GALAC1, AC1_SIZE);
+            SumFuses(&sum, Jedec.GALPT,  PT_SIZE);
+            SumFuses(&sum, &Jedec.GALSYN, SYN_SIZE);
+            SumFuses(&sum, &Jedec.GALAC0, AC0_SIZE);
+            break;
 
-        if (galtype == GAL16V8)
-        {
-            if (n == XOR16)
+        case GAL22V10:
+            SumFuses(&sum, Jedec.GALLogic, LOGIC22V10_SIZE);
+
+            for (n = 0; n < 10; n++)        /* XOR (S0) and S1 alternate */
             {
-                ptr = &Jedec.GALXOR[0];
+                SumFuses(&sum, &Jedec.GALXOR[n], 1);
+                SumFuses(&sum, &Jedec.GALS1[n], 1);
             }
-            else
+
+            SumFuses(&sum, Jedec.GALSig, SIG_SIZE);
+            break;
+
+        case GAL26CV12:
+            SumFuses(&sum, Jedec.GALLogic, LOGIC26CV12_SIZE);
+
+            for (n = 0; n < 12; n++)        /* XOR (S0) and S1 alternate */
             {
-                if (n == XOR16+8)
-                {
-                    ptr = &Jedec.GALSig[0];
-                }
-                else
-                {
-                    if (n == NUMOFFUSES16)
-                        break;
-                    else
-                        ptr++;
-                }
+                SumFuses(&sum, &Jedec.GALXOR[n], 1);
+                SumFuses(&sum, &Jedec.GALS1[n], 1);
             }
-        }
 
+            SumFuses(&sum, Jedec.GALSig, SIG_SIZE);
+            break;
 
-        if (galtype == GAL20V8)
-        {
-            if (n == XOR20)
-            {
-                ptr = &Jedec.GALXOR[0];
-            }
-            else
-            {
-                if (n == XOR20+8)
-                {
-                    ptr = &Jedec.GALSig[0];
-                }
-                else
-                {
-                    if (n == NUMOFFUSES20)
-                        break;
-                    else
-                        ptr++;
-                }
-            }
-        }
-
-
-        if (galtype == GAL22V10)
-        {
-            if (n >= XOR22V10 && n < XOR22V10 + 20)
-            {
-                if (!(n % 2))
-                    ptr = ptrXOR++;
-                else
-                    ptr = ptrS1++;
-            }
-            else
-            {
-                if (n == SIG22V10)
-                    ptr = &Jedec.GALSig[0] - 1L;
-
-                if (n == SIG22V10 + SIG_SIZE)
-                    break;
-                else
-                    ptr++;
-            }
-        }
-
-
-        if (galtype == GAL20RA10)
-        {
-            if (n == XOR20RA10)
-            {
-                ptr = &Jedec.GALXOR[0];
-            }
-            else
-            {
-                if (n == SIG20RA10 + SIG_SIZE)
-                    break;
-                else
-                    ptr++;
-            }
-        }
-
-        if (galtype == GAL26CV12)
-        {
-            if (n >= XOR26CV12 && n < XOR26CV12 + 24)
-            {
-                if (!(n % 2))
-                    ptr = ptrXOR++;
-                else
-                    ptr = ptrS1++;
-            }
-            else
-            {
-                if (n == SIG26CV12)
-                    ptr = &Jedec.GALSig[0] - 1L;
-
-                if (n == SIG26CV12 + SIG_SIZE)
-                    break;
-                else
-                    ptr++;
-            }
-        }
-
-
-
-        byte |= (*ptr << (n+8) % 8);
-
-        if (!((n + 9)%8))
-        {
-            checksum = (checksum + byte) % 0x10000;
-            byte = 0;
-        }
-
-        n++;
+        case GAL20RA10:
+            SumFuses(&sum, Jedec.GALLogic, LOGIC20RA10_SIZE);
+            SumFuses(&sum, Jedec.GALXOR, 10);
+            SumFuses(&sum, Jedec.GALSig, SIG_SIZE);
+            break;
     }
 
-    checksum = (checksum + byte) % 0x10000;
-
-    return(checksum);
+    return((sum.checksum + sum.byte) % 0x10000);
 }
 
 
@@ -539,12 +489,12 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config *cfg)
 ** input:   galtype     type of GAL
 **          cfg			configuration structure
 **
-** output:  none
+** output:  0 on success, -1 if the file could not be written
 **
 ** remarks: generats the JEDEC file out of the JEDEC structure
 ******************************************************************************/
  
-void WriteJedecFile(char *filename, int galtype, struct Config *cfg)
+int WriteJedecFile(char *filename, int galtype, struct Config *cfg)
 {
     struct  ActBuffer       mybuff;
     struct  Buffer          *first_buff;
@@ -575,7 +525,7 @@ void WriteJedecFile(char *filename, int galtype, struct Config *cfg)
 	if(!(first_buff = (struct Buffer *) calloc(sizeof(struct Buffer),1)))
     {
         ErrorReq(2);                                /* out of memory? */
-        return;
+        return(-1);
     }
 
     mybuff.ThisBuff = first_buff;
@@ -588,7 +538,7 @@ void WriteJedecFile(char *filename, int galtype, struct Config *cfg)
     {                                       /* put JEDEC in ram-buffer */
         FreeBuffer(first_buff);             /* error?                  */
         ErrorReq(2);
-        return;
+        return(-1);
     }
 
     if ((fp = fopen(filename, write_mode)))
@@ -612,7 +562,7 @@ void WriteJedecFile(char *filename, int galtype, struct Config *cfg)
                 fclose(fp);
                 FreeBuffer(first_buff);
                 ErrorReq(13);
-                return;
+                return(-1);
             }
 
             if (!mybuff.ThisBuff->Next)         /* more buffers here? */
@@ -640,14 +590,14 @@ void WriteJedecFile(char *filename, int galtype, struct Config *cfg)
                 {
                     FreeBuffer(first_buff);
                     ErrorReq(13);
-                    return;
+                    return(-1);
                 }
             }
             else
             {
                 FreeBuffer(first_buff);
                 ErrorReq(13);
-                return;
+                return(-1);
             }
         }
     }
@@ -655,10 +605,12 @@ void WriteJedecFile(char *filename, int galtype, struct Config *cfg)
     {
         FreeBuffer(first_buff);                     /* error?, then cancel*/
         ErrorReq(13);                               /* can't open file */
-        return;
+        return(-1);
     }
 
     FreeBuffer(first_buff);
+
+    return(0);
 }
 
 /*

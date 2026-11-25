@@ -30,6 +30,7 @@
 #define SUFFIX_APRST            5
 #define SUFFIX_ARST             6
 
+#define USAGE                   "Usage:\nGALasm [-scfpawv] <filename>\n"
 int DUMMY_OLMC11 =24; // Original Defaults
 int DUMMY_OLMC12 =25;
 
@@ -207,8 +208,8 @@ int AssemblePldFile(char *file, struct Config *cfg)
     UBYTE   chr;
     UBYTE   *bool_start, *oldptr;
     char    prevOp;
-    char    suffix_strn[MAX_SUFFIX_SIZE];
-    int     i = 0, j, k, l = 0, n, m;
+    char    suffix_strn[MAX_SUFFIX_SIZE + 1];
+    int     k, l = 0, n, m;
     int     max_chr, pass, pin_num, bool_linenum;
     int     actOLMC, row_offset, newline, oldline;
     int     suffix, start_row, max_row, num_of_olmcs;
@@ -220,12 +221,22 @@ int AssemblePldFile(char *file, struct Config *cfg)
         {
             fsize = FileSize(file);
 
-		if((fbuff = malloc(fsize)))
+            if (fsize < 0)
+            {
+                FileErrorReq(1, file);                  /* file not found */
+                return(-2);
+            }
+
+                                        /* the source is followed by a */
+                                        /* NUL, so that looking at the */
+                                        /* byte at buffend is safe     */
+		if((fbuff = malloc(fsize + 1)))
             {
                 if ((ReadFile(file, fsize, fbuff)))
                 {
                     actptr  = fbuff;
                     buffend = fbuff+fsize;
+                    *buffend = 0;
                     linenum = 1;
 /* This code generates a warning about exceeding array bounds */
 #if	0
@@ -264,11 +275,9 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         gal_type     = GAL16V8;
                         activeFuseMap = PinToFuse16Mode1;
 
-                        if ((*(actptr+7L) != ' ')  &&	/* Only ' ', newline and tab are valid 	*/
-                            (*(actptr+7L) != 0x0A) &&   /* after the GAL's name					*/
-                            (*(actptr+7L) != 0x09))		/* Any other char will produce an error */
+                        if (!IsTypeEnd(actptr + 7))
                         {
-                          AsmError(1, 0);
+                            AsmError(1, 0);
                             return(-1);
                         }
                     }
@@ -282,11 +291,9 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         gal_type     = GAL20V8;
                         activeFuseMap = PinToFuse20Mode1;
 
-                        if ((*(actptr+7L) != ' ')  &&
-                            (*(actptr+7L) != 0x0A) &&
-                            (*(actptr+7L) != 0x09))
+                        if (!IsTypeEnd(actptr + 7))
                         {
-                              AsmError(1, 0);
+                            AsmError(1, 0);
                             return(-1);
                         }
                     }
@@ -300,11 +307,9 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         gal_type     = GAL20RA10;
                         activeFuseMap = PinToFuse20RA10;
 
-                        if ((*(actptr+9L) != ' ')  &&
-                            (*(actptr+9L) != 0x0A) &&
-                            (*(actptr+9L) != 0x09) )
+                        if (!IsTypeEnd(actptr + 9))
                         {
-                                AsmError(1, 0);
+                            AsmError(1, 0);
                             return(-1);
                         }
                     }
@@ -318,11 +323,9 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         gal_type     = GAL22V10;
                         activeFuseMap = PinToFuse22V10;
 
-                        if ((*(actptr+8L) != ' ')  &&
-                            (*(actptr+8L) != 0x0A) &&
-                            (*(actptr+8L) != 0x09))
+                        if (!IsTypeEnd(actptr + 8))
                         {
-                              AsmError(1, 0);
+                            AsmError(1, 0);
                             return(-1);
                         }
                     }
@@ -367,10 +370,10 @@ int AssemblePldFile(char *file, struct Config *cfg)
 
 
                                         /* end of signature: after eight */
-                                        /* characters, CR or TAB         */
+                                        /* characters, newline or TAB    */
 
 
-                while((*actptr != 0x0A) && (*actptr != 0x09) && (n < 8))
+                while(!IsLineEnd(actptr) && (*actptr != 0x09) && (n < 8))
                 {
                     chr = *actptr;
 
@@ -424,7 +427,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                 else
                     max_chr = 9;
 
-                if (!(isalpha(chr) || isdigit(chr) || IsNEG(chr)))
+                if (!(IsPinChar(chr) || IsNEG(chr)))
                 {
                     printf("%d.%d: 0x%2.2x [%d]\n",n, num_of_pins, chr,chr);
                     AsmError(5, 0);             /* is character a legal */
@@ -433,7 +436,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
 
                 k = 0;
 
-                while (isalpha(chr) || isdigit(chr) || IsNEG(chr))
+                while (IsPinChar(chr) || IsNEG(chr))
                 {
                     if (IsNEG(chr) && k != 0)    /* check position of '/' */
                     {
@@ -445,7 +448,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
 
                     actptr++;
 
-                    if (IsNEG(chr) && (!(isalpha(*actptr) || isdigit(*actptr))))
+                    if (IsNEG(chr) && !IsPinChar(*actptr))
                     {
                         AsmError(3, 0);
                         return(-1);
@@ -469,18 +472,10 @@ int AssemblePldFile(char *file, struct Config *cfg)
 
                 for (l = 0; l < n; l++)         /* pin name twice? */
                 {
-                    if (strcmp((char *)pinnames+l*10, "NC"))
+                    if (strcmp(PinBaseName(pinnames+l*10), "NC"))
                     {
-                        i = j = 0;
-
-                        if (IsNEG(*(pinnames+l*10)))  /* skip negation sign */
-                            i = 1;
-
-                        if (IsNEG(*(pinnames+n*10)))
-                            j = 1;
-
-                        if (!strcmp((char *)(pinnames+l*10+i),
-                                    (char *)(pinnames+n*10+j)))
+                        if (!strcmp(PinBaseName(pinnames+l*10),
+                                    PinBaseName(pinnames+n*10)))
                         {
                             AsmError(9, 0);       /* pin name defined twice */
                             return(-1);
@@ -488,7 +483,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                     }
                 }
                                                   /* is GND at the GND-pin? */
-                if (!strcmp((char *)(pinnames + n*10), "GND"))
+                if (!strcmp(PinBaseName(pinnames + n*10), "GND"))
                 {
                     if (activeFuseMap[n] != GND)
                     {
@@ -505,8 +500,8 @@ int AssemblePldFile(char *file, struct Config *cfg)
                         return(-1);
                     }
                 }
-                                                   /* is VCC at the VCC pin? */
-                if (!strcmp((char *)(pinnames + n*10), "VCC"))
+                                                /* is VCC at the VCC pin? */
+                if (!strcmp(PinBaseName(pinnames + n*10), "VCC"))
                 {
                     if (activeFuseMap[n] != VCC)
                     {
@@ -1003,13 +998,11 @@ loop1:
 
 
 
+                                /* a negation of the target of .E, .CLK, */
+                                /* .ARST and .APRST is ignored: these    */
+                                /* equations always give the condition   */
+                                /* that enables, clocks, resets, presets */
                 case SUFFIX_E:
-
-                    if (actPin.p_Neg)       /* negation of the trisate */
-                    {                       /* control is not allowed */
-                        AsmError(19, 0);
-                        return(-1);
-                    }
 
                     if (OLMC[n].TriCon)     /* tri. control twice? */
                     {                       /* yes, then error */
@@ -1047,12 +1040,6 @@ loop1:
 
                case SUFFIX_CLK:
 
-                    if (actPin.p_Neg)           /* negation of the .CLK   */
-                    {                           /* control is not allowed */
-                        AsmError(19, 0);
-                        return(-1);
-                    }
-
                     if (OLMC[n].PinType == NOTUSED)
                     {
                         AsmError(42, 0);        /* sequence must be: output */
@@ -1079,12 +1066,6 @@ loop1:
 
                 case SUFFIX_ARST:
 
-                    if (actPin.p_Neg)
-                    {                           /* negation of the .ARST  */
-                        AsmError(19, 0);        /* control is not allowed */
-                        return(-1);
-                    }
-
                     if (OLMC[n].PinType == NOTUSED)
                     {
                         AsmError(43, 0);        /* sequence must be: output */
@@ -1110,12 +1091,6 @@ loop1:
 
 
                 case SUFFIX_APRST:
-
-                    if (actPin.p_Neg)
-                    {                           /* negation of the .APRST */
-                        AsmError(19, 0);        /* control is not allowed */
-                        return(-1);
-                    }
 
                     if (OLMC[n].PinType == NOTUSED)
                     {
@@ -1216,7 +1191,7 @@ loop2:
         }
 
 
-        if (IsNEG(*(pinnames+(long)((actPin.p_Pin - 1)*10))))
+        if (IsDeclaredNegated(actPin.p_Pin, num_of_pins))
             actPin.p_Neg = !actPin.p_Neg;       /* consider negation in the */
                                                 /* pin declartion           */
 
@@ -1233,6 +1208,9 @@ loop2:
 
         if (!pass)                              /* is this pass 1?*/
         {
+                                /* AR and SP can't appear in terms, so for */
+                                /* 22V10 stop at pin 23: pin 24 is VCC, not */
+                                /* the AR dummy OLMC                        */
             if (((gal_type == GAL16V8) &&       /* is this pin an OLMC pin? */
                  (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
                 ((gal_type == GAL20V8) &&
@@ -1524,7 +1502,7 @@ label1:
                 return(-1);
             }
 
-            if (IsNEG(*(pinnames+(long)((actPin.p_Pin-1)*10))))
+            if (IsDeclaredNegated(actPin.p_Pin, num_of_pins))
                 actPin.p_Neg = !actPin.p_Neg; /* negation at pin declaration */
 
             goto loop1;
@@ -1659,7 +1637,7 @@ label1:
 
 					/* Obtain the filename without the extension */
 					{
-						char *base; int l;
+						char *base; int l, rc;
 
 
 						if((base = GetBaseName(file)))
@@ -1671,18 +1649,21 @@ label1:
 							base[l-3] = '.';
 
 							extman(base,l,'j','e','d');	
-							WriteJedecFile(base, gal_type, cfg);
+							rc = WriteJedecFile(base, gal_type, cfg);
 
 							extman(base,l,'f','u','s');	
-    	                    if(cfg->GenFuse) WriteFuseFile(base, gal_type);
+							if(!rc && cfg->GenFuse) rc = WriteFuseFile(base, gal_type);
 
 							extman(base,l,'p','i','n');	
-        	                if(cfg->GenPin ) WritePinFile (base, gal_type);
+							if(!rc && cfg->GenPin ) rc = WritePinFile (base, gal_type);
 
 							extman(base,l,'c','h','p');	
-            	            if(cfg->GenChip) WriteChipFile(base, gal_type);
+							if(!rc && cfg->GenChip) rc = WriteChipFile(base, gal_type);
 
 							free(base);
+
+							if(rc)
+								return(-2);	/* an output file could not be written */
 
 						}
 						else
@@ -1697,7 +1678,7 @@ label1:
                 }
                 else
                 {
-                    ErrorReq(3);                          /* read error */
+                    FileErrorReq(3, file);                /* read error */
 					free(fbuff);
                     return(-2);
                 }
@@ -1808,7 +1789,7 @@ void SetAND(int row, int pinnum, int negation, int gal_type)
 **
 **  global: actptr          pointer to the first character of the pinname
 **          actPin.p_Pin:   number of pin or NC_PIN; 0: no pin
-**          actPin.p_Neg:   pinname with '/' = 1;  without '/' = 0
+**          actPin.p_Neg:   odd number of '/' = 1;  even number or none = 0
 **
 ** output:  none
 **
@@ -1817,24 +1798,19 @@ void SetAND(int row, int pinnum, int negation, int gal_type)
 
 void IsPinName(UBYTE *pinnames, int numofpins)
 {
-    int     i, k, n;
+    int     k, n;
     UBYTE   *oldactptr;
+    char    *base;
 
 
-    actPin.p_Neg = 0;                   /* install structure for pin */
-    actPin.p_Pin = 0;
-
-    if (IsNEG(*actptr))
-    {                                   /* negation? */
-        actptr++;
-        actPin.p_Neg = 1;
-    }
+    actPin.p_Pin = 0;                   /* install structure for pin */
+    actPin.p_Neg = SkipNegations(&actptr);
 
     n = 0;                                /* get length of pin name */
 
     oldactptr = actptr;
 
-    while (isalpha(*actptr) || isdigit(*actptr))
+    while (IsPinChar(*actptr))
     {
         actptr++;
         n++;
@@ -1846,14 +1822,11 @@ void IsPinName(UBYTE *pinnames, int numofpins)
         else
             for (k = 0; k < numofpins; k++)
             {                           /* examine whole list of pin names */
-                i = 0;
-
-                if (IsNEG(*(pinnames+k*10)))
-                    i = 1;
+                base = PinBaseName(pinnames+k*10);
 
                                          /* are the string sizes equal? */
-                if (n == strlen((char *)(pinnames+k*10+i)))
-                    if (!(strncmp((char *)oldactptr, (char *)(pinnames+k*10+i),
+                if (n == strlen(base))
+                    if (!(strncmp((char *)oldactptr, base,
                           (size_t)n)))   /* yes, then compare these strings */
                 {
                     actPin.p_Pin = k + 1;
@@ -1868,13 +1841,87 @@ void IsPinName(UBYTE *pinnames, int numofpins)
 
 
 /******************************************************************************
+** SkipNegations()
+*******************************************************************************
+** input:   **ptr   pointer to a pointer to the first character of a target
+**                  or term of an equation
+**
+** output:  1: an odd number of negation signs, so the name is negated
+**          0: an even number of them, or none
+**          *ptr is moved past the negation signs
+**
+** remarks: a run of negation signs may mix '/' and '!'
+******************************************************************************/
+
+int SkipNegations(UBYTE **ptr)
+{
+    int neg = 0;
+
+    while (IsNEG(**ptr))
+    {
+        neg = !neg;
+        (*ptr)++;
+    }
+
+    return(neg);
+}
+
+
+
+
+
+/******************************************************************************
+** PinBaseName()
+*******************************************************************************
+** input:   *pinname    a pin name from the pin declaration
+**
+** output:  the pin name without its negation sign
+**
+******************************************************************************/
+
+char *PinBaseName(UBYTE *pinname)
+{
+    if (IsNEG(*pinname))
+        pinname++;
+
+    return((char *)pinname);
+}
+
+
+
+
+
+/******************************************************************************
+** IsDeclaredNegated()
+*******************************************************************************
+** input:   pinnum      number of the pin, or DUMMY_OLMC11/12 for AR/SP
+**          numofpins   number of pins (20 or 24, depends on the type of GAL)
+**
+** output:  1: the pin was declared with a negation sign
+**          0: it was not, or it is AR or SP, which are not declared
+**
+******************************************************************************/
+
+int IsDeclaredNegated(int pinnum, int numofpins)
+{
+    if (pinnum <= numofpins && IsNEG(*GetPinName(pinnames, pinnum)))
+        return(1);
+    else
+        return(0);
+}
+
+
+
+
+
+/******************************************************************************
 ** Is_AR_SP()
 *******************************************************************************
 ** input:   *ptr    pointer to the first character of the pinname
 **
 ** output:  none
 **          global  actPin.p_Pin: 23: AR, 24: SP, 0: no AR, SP
-**                  actPin.p_Neg: pinname with '/' = 1;  without '/' = 0
+**                  actPin.p_Neg: odd number of '/' = 1;  even number or none = 0
 **
 ** remarks: This function tests whether actptr points to a AR or SP
 ******************************************************************************/
@@ -1885,20 +1932,14 @@ void Is_AR_SP(UBYTE *ptr)
     UBYTE   *oldptr;
 
 
-    actPin.p_Neg = 0;                     /* install structure for pin */
-    actPin.p_Pin = 0;
-
-    if (IsNEG(*ptr))
-    {                    /* negation? */
-        ptr++;
-        actPin.p_Neg = 1;
-    }
+    actPin.p_Pin = 0;                     /* install structure for pin */
+    actPin.p_Neg = SkipNegations(&ptr);
 
     n = 0;                                /* get length of pin name */
 
     oldptr = ptr;
 
-    while (isalpha(*ptr) || isdigit(*ptr))
+    while (IsPinChar(*ptr))
     {
         ptr++;
         n++;
@@ -1948,7 +1989,7 @@ int GetNextChar(void)
 
             case ';':                            /* comment found?         */
                 if (GetNextLine())               /* then skip rest of line */
-                    return(0);
+                    return(1);
                 break;
 
             default:
@@ -1984,6 +2025,9 @@ int GetNextLine(void)
 
     for(;;)
     {
+        if (actptr >= buffend)                      /* end of file? */
+            return(1);
+
         if (*actptr == 0x0A)
         {
             actptr++;
@@ -1991,13 +2035,56 @@ int GetNextLine(void)
             return(0);
         }
 
-        if (actptr > buffend)                       /* end of file? */
-            return(1);
-
         actptr++;
     }
 }
 
+
+
+
+
+
+/******************************************************************************
+** IsTypeEnd()
+*******************************************************************************
+** input:   ptr    pointer to the byte after the type of GAL in line 1
+**
+** output:  1: the type of GAL is followed by a valid separator
+**          0: it is followed by something else
+**
+** remarks: only ' ', TAB and newline are valid after the GAL's name
+******************************************************************************/
+
+int IsTypeEnd(UBYTE *ptr)
+{
+    if (*ptr == ' ' || *ptr == 0x09 || IsLineEnd(ptr))
+        return(1);
+    else
+        return(0);
+}
+
+
+
+
+
+/******************************************************************************
+** IsLineEnd()
+*******************************************************************************
+** input:   ptr    pointer into the source file
+**
+** output:  1: ptr points to a newline: LF or CR LF
+**          0: it does not
+**
+** remarks: a CR is only part of a newline when an LF follows it
+******************************************************************************/
+
+int IsLineEnd(UBYTE *ptr)
+{
+    if (*ptr == 0x0A || (*ptr == 0x0D && ptr + 1 < buffend && *(ptr+1) == 0x0A))
+        return(1);
+    else
+        return(0);
+}
 
 
 
@@ -2040,6 +2127,29 @@ int IsOR(char chr)
 int IsAND(char chr)
 {
     if (chr == '*' || chr == '&')
+        return(1);
+    else
+        return(0);
+}
+
+
+
+
+
+/******************************************************************************
+** IsPinChar()
+*******************************************************************************
+** input:   chr    character to test
+**
+** output:  1: chr may appear in a pin name
+**          0: chr may not appear in a pin name
+**
+** remarks: pin names may contain letters, digits and '_' (e.g. /ROM_EN)
+******************************************************************************/
+
+int IsPinChar(UBYTE chr)
+{
+    if (isalpha(chr) || isdigit(chr) || chr == '_')
         return(1);
     else
         return(0);
@@ -2094,12 +2204,12 @@ int GetPinNum(int gal_type)
 ** input:   gal type
 **			filename
 **
-** output:  none
+** output:  0 on success, -1 if the file could not be written
 **
 ** remarks: make chip file
 ******************************************************************************/
 
-void WriteChipFile(char *filename, int gal_type)
+int WriteChipFile(char *filename, int gal_type)
 {
     FILE    *fp;
     int     n;
@@ -2156,9 +2266,16 @@ void WriteChipFile(char *filename, int gal_type)
             if (fclose(fp) == EOF)
             {
                 ErrorReq(8);                   /* can't close file */
-                return;
+                return(-1);
             }
         }
+        else
+        {
+            ErrorReq(13);
+            return(-1);
+        }
+
+    return(0);
 }
 
 
@@ -2169,12 +2286,12 @@ void WriteChipFile(char *filename, int gal_type)
 ** input:   gal type
 **			filename
 **
-** output:  none
+** output:  0 on success, -1 if the file could not be written
 **
 ** remarks: make pin file
 ******************************************************************************/
 
-void WritePinFile(char *filename, int gal_type)
+int WritePinFile(char *filename, int gal_type)
 {
     FILE    *fp;
     int     k, n, flag;
@@ -2287,15 +2404,16 @@ void WritePinFile(char *filename, int gal_type)
             if (fclose(fp) == EOF)
             {
                 ErrorReq(8);                           /* can't close file */
-                return;
+                return(-1);
             }
         }
         else
         {
             ErrorReq(13);
-            return;
+            return(-1);
         }
 
+    return(0);
 }
 
 /******************************************************************************
@@ -2334,12 +2452,12 @@ void WriteRow(FILE *fp, int row, int num_of_col)
 ** input:   gal type
 **			filename
 **
-** output:  none
+** output:  0 on success, -1 if the file could not be written
 **
 ** remarks: make fuse file
 ******************************************************************************/
 
-void WriteFuseFile(char *filename, int gal_type)
+int WriteFuseFile(char *filename, int gal_type)
 {
     FILE    *fp;
     int     row, pin, n, numofOLMCs, numofrows, olmc;
@@ -2458,15 +2576,16 @@ void WriteFuseFile(char *filename, int gal_type)
             if (fclose(fp) == EOF)
             {
                 ErrorReq(8);                            /* can't close file */
-                return;
+                return(-1);
             }
         }
         else
         {
             ErrorReq(13);
-            return;
+            return(-1);
         }
 
+    return(0);
 }
 
 /******************************************************************************
@@ -2537,7 +2656,7 @@ void AsmError(int errornum, int pinnum)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	int rc, i;
   	char *p;
 
 	struct Config cfg;
@@ -2550,99 +2669,92 @@ int main(int argc, char *argv[])
 	cfg.ForceCRLF		= FALSE;
 	cfg.Verbose		= FALSE;
 
-	p = argv[1];
-
 	printf( "GALasm 2.1, Portable GAL Assembler\n"
 			"Copyright (c) 1998-2003 Alessandro Zummo. All Rights Reserved\n"
 			"Original sources Copyright (c) 1991-96 Christian Habermann\n\n");
 
 
-  	while(argc > 1 && (p[0] == '-' || (isalpha(p[1]) && (argc != 2))))
+	/* Options come before the file name.  A lone '-' or an argument */
+	/* starting with "--" ends them; the next argument is the file.  */
+
+	for (i = 1; i < argc && argv[i][0] == '-'; i++)
 	{
-    	switch(p[1])
+		p = argv[i];
+
+		if (p[1] == '\0' || p[1] == '-')
 		{
-      		case 's':
-			case 'S':
-				cfg.JedecSecBit = TRUE;
+			i++;
 			break;
+		}
 
-      		case 'c':
-			case 'C':
-				cfg.GenChip = FALSE;
-			break;
-
-      		case 'f':
-			case 'F':
-				cfg.GenFuse = FALSE;
-			break;
-
-      		case 'p':
-			case 'P':
-				cfg.GenPin = FALSE;
-			break;
-
-      		case 'a':
-			case 'A':
-				cfg.JedecFuseChk = TRUE;
-			break;
-
-			case 'w':
-			case 'W':
-				cfg.ForceCRLF = TRUE;
-			break;
-			case 'v':
-			case 'V':
-				cfg.Verbose = TRUE;
+		for (p++; *p; p++)
+		{
+	    	switch(*p) 
+			{
+	      		case 's':
+				case 'S':
+					cfg.JedecSecBit = TRUE;
 				break;
 
-			case 'h':
-			case 'H':
-			case '?':
-				printf("Usage:\nGALasm [-scfpawv] <filename>\n");
-				printf(	"-s Enable security fuse\n"
-						"-c Do not create the .chp file\n"
-						"-f Do not create the .fus file\n"
-						"-p Do not create the .pin file\n"
-						"-a Restrict checksum to the fuse array only\n"
-						"-w Force <CR><LF> line endings for .jed file overriding platform default\n"
-						"-v Verbose output\n");
-				return(0);
+	      		case 'c':
+				case 'C':
+					cfg.GenChip = FALSE;
+				break;
 
-      		case '-':
-      		case '\0':
-			argc--;
-			argv++;
-			goto opt_done;
+	      		case 'f':
+				case 'F':
+					cfg.GenFuse = FALSE;
+				break;
 
-      		default:
-				goto usage;
-    	}
-		
+	      		case 'p':
+				case 'P':
+					cfg.GenPin = FALSE;
+				break;
 
-		if(!isalpha(p[2]))
-		{
-	    	argc--;
-    		argv++;
+	      		case 'a':
+				case 'A':
+					cfg.JedecFuseChk = TRUE;
+				break;
 
-			p = argv[1];
+				case 'w':
+				case 'W':
+					cfg.ForceCRLF = TRUE;
+				break;
+
+				case 'v':
+				case 'V':
+					cfg.Verbose = TRUE;
+				break;
+
+				case 'h':
+				case 'H':
+				case '?':
+					printf(USAGE);
+					printf(	"-s Enable security fuse\n"
+							"-c Do not create the .chp file\n"
+							"-f Do not create the .fus file\n"
+							"-p Do not create the .pin file\n"
+							"-a Restrict checksum to the fuse array only\n"
+							"-w Force <CR><LF> line endings for .jed file overriding platform default\n"
+							"-v Verbose output\n");
+					return(0);
+
+	      		default:
+					goto usage;
+	    	}
 		}
-		else
-			p++;
-  	}
+	}
 
-
-	opt_done:
-
-  	if(argc != 2)
+	if (argc - i != 1)              /* exactly one file name */
 	{
 		usage:
-			printf("Usage:\nGALasm [-scfpawv] <filename>\n");
+			printf(USAGE);
 			printf("Type GALasm -h for help\n");
 		return(5);
-  	}
+	}
 
 
-	rc = AssemblePldFile(argv[1], &cfg);
+	rc = AssemblePldFile(argv[i], &cfg);
 
 	if(rc != 0)
 		printf("Assembling failed.\n");

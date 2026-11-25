@@ -250,17 +250,23 @@ extern char *AsmErrorArray[];
 /*GALasm .c */
 void  SetAND(int row, int pinnum, int negation, int gal_type);
 void  IsPinName(UBYTE *pinnames, int numofpins);
+int   SkipNegations(UBYTE **ptr);
+char *PinBaseName(UBYTE *pinname);
+int   IsDeclaredNegated(int pinnum, int numofpins);
 int   GetNextChar(void);
 int   GetNextLine(void);
 void  AsmError(int errornum, int pinnum);
-void  WriteChipFile(char *filename, int gal_type);
-void  WritePinFile(char *filename, int gal_type);
-void  WriteFuseFile(char *filename, int gal_type);
+int   WriteChipFile(char *filename, int gal_type);
+int   WritePinFile(char *filename, int gal_type);
+int   WriteFuseFile(char *filename, int gal_type);
 void  WriteSpaces(FILE *fp, int numof);
 void  WriteRow(FILE *fp, int row, int num_of_col);
+int   IsTypeEnd(UBYTE *ptr);
+int   IsLineEnd(UBYTE *ptr);
 int   IsOR(char);
 int   IsAND(char);
 int   IsNEG(char);
+int   IsPinChar(UBYTE);
 void  Is_AR_SP(UBYTE *ptr);
 
 
@@ -277,12 +283,13 @@ char *GetGALName(int galtype);
 char *GetPinName(UBYTE *pinnames, int pinnum);
 char *GetModeName(int mode);
 void  ErrorReq(int errornum);
+void  FileErrorReq(int errornum, char *filename);
 
 /* Jedec.c */
 int      FileChecksum(char* filename, unsigned* pchecksum);
 unsigned FuseChecksum(int galtype);
 int      MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config *cfg);
-void     WriteJedecFile(char *filename, int galtype, struct Config *cfg);
+int      WriteJedecFile(char *filename, int galtype, struct Config *cfg);
 
 
 /* EOF */
