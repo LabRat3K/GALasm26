@@ -49,7 +49,7 @@ char *AsmErrorArray[] =
 "this pin can't be used as output",
 "same pin is defined multible as output",
 "before using .E, the output must be defined",
-"GAL22V10: AR and SP is not allowed as pinname",
+"GAL22V10/26CV12: AR and SP is not allowed as pinname",
 ".E, .CLK, .ARST and .APRST is not allowed to be negated",
 "mode 2: pins 12, 19 can't be used as input",
 "mode 2: pins 15, 22 can't be used as input",

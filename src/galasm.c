@@ -394,7 +394,7 @@ int AssemblePldFile(char *file, struct Config *cfg)
                                         /* clear flags for negations */
                                         /* in the pin declaration    */
 
-                for (n = 0; n < 24; PinDecNeg[n++] = 0);
+                for (n = 0; n < 28; PinDecNeg[n++] = 0);
 
 
 
@@ -1253,8 +1253,14 @@ loop2:
                         break;
 
                     case GAL20V8:
-                    case GAL26CV12:
                         n = actPin.p_Pin - 15;
+                        break;
+
+                    case GAL26CV12:
+                        if (actPin.p_Pin < 21)
+                            n = actPin.p_Pin - 15;
+                        else
+                            n = actPin.p_Pin - 16;
                         break;
 
                     case GAL22V10:
@@ -1765,12 +1771,16 @@ void SetAND(int row, int pinnum, int negation, int gal_type)
 
         case GAL26CV12:
             column  =  PinToFuse26CV12[pinnum - 1];
+            if (pinnum >= 15 && pinnum <= 27 && pinnum != 21)
+            {
+                int olmc_idx = (pinnum > 20) ? (pinnum - 16) : (pinnum - 15);
 
                                     /* is it a registered OLMC pin that is active high? */
                                     /* Yes, then correct the negation                   */
-            if ((pinnum >= 15 && pinnum <= 27) && !Jedec.GALS1[27 - pinnum] && Jedec.GALXOR[27 - pinnum])
-            {
-                negation = negation ? 0 : 1;
+                if (!Jedec.GALS1[11 - olmc_idx] && Jedec.GALXOR[11 - olmc_idx])
+                {
+                    negation = negation ? 0 : 1;
+                }
             }
 
 	    numofcol = MAX_FUSE_ADR26CV12 + 1;
@@ -2405,8 +2415,11 @@ void WriteFuseFile(char *filename, int gal_type)
                       Jedec.GALXOR[23 - pin], Jedec.GALS1[23 - pin]);
                 else
                 if (gal_type == GAL26CV12)
+                {
+                   int olmc_idx = (pin > 20) ? (pin - 16) : (pin - 15);
                    fprintf(fp, "S0 = %1d   S1 = %1d",
-                      Jedec.GALXOR[27 - pin], Jedec.GALS1[27 - pin]);
+                      Jedec.GALXOR[11 - olmc_idx], Jedec.GALS1[11 - olmc_idx]);
+                }
                 else
                 if (gal_type == GAL20RA10)
                    fprintf(fp, "S0 = %1d",

@@ -21,7 +21,7 @@
 #define GAL22V10        3
 #define GAL20RA10       4
 #define GAL26CV12       5
-#define UNKNOWN         (GAL26CV12+1)6
+#define UNKNOWN         (GAL26CV12+1)
 #define NOT_SPECIFIED   (UNKNOWN+1)
 
 #define YES             1
@@ -65,7 +65,7 @@
 #define NUMOFFUSES26CV12 6432           /* GAL26CV12 */
 #define XOR26CV12       6344            /* in the JEDEC file     */
 #define SYN26CV12       6345
-#define SIG26CV12       6268
+#define SIG26CV12       6368
 
 
 #define LOGIC16_SIZE    2048            /* number of bits for XOR etc. */
